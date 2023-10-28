@@ -48,12 +48,13 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
+                    // Initialize the ViewModel
                     val viewModel = VariableViewModel()
 
-                    // initialize a pagerState to control pager this could also be hoisted higher
+                    // initialize a pagerState
                     val pagerState = rememberPagerState()
 
-                    // This version makes use of State Flows
+                    // This version makes use of State Flows in the ViewModel
                     MainScreenViewModelExample(viewModel, pagerState)
                 }
             }
@@ -64,7 +65,7 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun MainScreenViewModelExample(viewModel: VariableViewModel, pagerState: PagerState) {
-    // Collect this as a State so we see the changes
+    // Collect these as States so we see the changes
     val screenToShow = viewModel.uiState.collectAsState()
     val savedPageNumber = viewModel.savedPageNum.collectAsState()
 
@@ -73,8 +74,13 @@ fun MainScreenViewModelExample(viewModel: VariableViewModel, pagerState: PagerSt
         // screens? you could just use the name of the ScreenName enums .name like below
         // Top text shows selected screen that you are on at all times, i like to do this
         // when testing so i know what is set at every step just in case
+        CurrentScreenText(
+            modifier = Modifier.align(Alignment.CenterHorizontally),
+            screenName = screenToShow.value.name
+        )
 
-        // You can use AnimatedContent to smooth the transition between composable
+        // You can use AnimatedContent to smooth the transition between composables when swapping out
+        // entire screens or elements
         AnimatedContent(
             label = "PagerScreenAnimation",
             targetState = screenToShow.value // we have to specify value here
@@ -82,33 +88,19 @@ fun MainScreenViewModelExample(viewModel: VariableViewModel, pagerState: PagerSt
             when (screenName) {
                 // First screen our HorizontalPager
                 ScreenName.FIRST -> {
-                    Column {
-                        CurrentScreenText(
-                            modifier = Modifier.align(Alignment.CenterHorizontally),
-                            screenName = screenToShow.value.name
-                        )
-
-                        ScreenFirstView(
-                            modifier = Modifier.align(Alignment.CenterHorizontally),
-                            pagerState = pagerState,
-                            savedPageNumber = savedPageNumber.value
-                        )
-                    }
+                    ScreenFirstView(
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        pagerState = pagerState,
+                        savedPageNumber = savedPageNumber.value
+                    )
                 }
 
                 // Second screen
                 ScreenName.SECOND -> {
-                    Column {
-                        CurrentScreenText(
-                            modifier = Modifier.align(Alignment.CenterHorizontally),
-                            screenName = screenToShow.value.name
-                        )
-
-                        ScreenSecondView(
-                            modifier = Modifier.align(Alignment.CenterHorizontally),
-                            currentIndex = pagerState.currentPage
-                        )
-                    }
+                    ScreenSecondView(
+                        modifier = Modifier.align(Alignment.CenterHorizontally),
+                        currentIndex = pagerState.currentPage
+                    )
                 }
             }
         }
@@ -132,17 +124,20 @@ fun MainScreenViewModelExample(viewModel: VariableViewModel, pagerState: PagerSt
     }
 }
 
-// If you would like to still store these values in view model, I would set it up like this:
+// I would set up mutable values that i need and updated state for that
+// are stored in ViewModel with state flows like this:
 class VariableViewModel : ViewModel() {
-    // Using a private val so it only can receive updates from updateUiState function
+    // Setup flows, private val in view model is actual value that
+    // can only be modified from its respective update function in view model
     private val _uiState = MutableStateFlow(ScreenName.FIRST)
     // This is the state flow we will "Observe" in our ui
     val uiState = _uiState.asStateFlow()
 
+    // The update function for our variable
     fun updateUiState(screen: ScreenName) { _uiState.value = screen }
 
+    // Same goes here
     private val _savedPageNum = MutableStateFlow(0)
-    // This is the state flow we will "Observe" in our ui
     val savedPageNum = _savedPageNum.asStateFlow()
 
     fun savePageNumber(pageNumber: Int) { _savedPageNum.value = pageNumber }
